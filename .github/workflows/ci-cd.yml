@@ -123,7 +123,11 @@ jobs:
           kubelogin convert-kubeconfig -l azurecli
 
       - name: Install Ansible
-        run: pipx install --include-deps ansible && pipx inject ansible kubernetes
+        # A separate environment, because the runner's own Ansible lacks the kubernetes library.
+        run: |
+          python3 -m venv "$RUNNER_TEMP/ansible"
+          "$RUNNER_TEMP/ansible/bin/pip" install --quiet ansible kubernetes
+          echo "$RUNNER_TEMP/ansible/bin" >> "$GITHUB_PATH"
 
       - name: Deploy or update the Kubernetes application
         working-directory: ansible

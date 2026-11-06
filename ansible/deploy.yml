@@ -41,4 +41,4 @@
 
         - name: Fail the pipeline
           ansible.builtin.fail:
-            msg: "Rollout of {{ image }} failed and was rolled back"
+            msg: "Rollout of {{ image }} failed: {{ ansible_failed_result.msg | default('see the failed task above') }}"
