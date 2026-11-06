@@ -1,0 +1,18 @@
+# The Git history was rewritten after the pipeline runs, changing commit messages only.
+# The code is identical: the final tree hash is the same before and after.
+# Older evidence, screenshots and pipeline runs show the original IDs.
+
+Original  Current  Commit
+6113e8a   0f35212  Add availability results and pipeline run history
+3a8227e   626bbb6  Pause pods before shutdown so rollouts do not drop requests
+63c8c56   387f317  Change the home page message to demonstrate automatic redeployment
+dbbe67e   ede6b4e  Run Ansible from its own environment and report the real deploy error
+baf4b80   5c97a26  Pin the kubelogin version in the pipeline
+c45804e   9c851f8  Read the GitHub OIDC subject prefix instead of assuming its format
+60ba6d3   0ee097b  Use a node size Azure for Students allows and make setup re-runnable
+8b9c9b1   fdc60d2  Move cloud target from AWS to Azure (ACR and AKS)
+5174b20   b934589  Keep LF line endings on shell scripts
+b780276   86d21c2  Add Java app, CI/CD pipeline, Kubernetes and AWS config
+
+# Pipeline run 42181044866 (run 7) passed all three jobs on the rewritten history,
+# and verified http://4.247.214.152 serving version 0f35212.
