@@ -1,0 +1,4 @@
+# Availability during a rolling restart, measured from inside the cluster
+# One request a second to the Service, while kubectl rollout restart replaced both pods.
+# Does not cover the Azure load balancer. An earlier check from outside was invalid: the local network filter blocked it.
+requests=100 successful=99 failed=1

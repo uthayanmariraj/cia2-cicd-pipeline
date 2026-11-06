@@ -1,0 +1,21 @@
+# After the change: 2026-11-06 12:14:52 IST
+$ kubectl -n devops-app get deploy,pods,svc -o wide
+NAME                         READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES                                                                             SELECTOR
+deployment.apps/devops-app   2/2     2            2           11m   devops-app   ciadevops525f26cb.azurecr.io/devops-app:63c8c566c1d30e7c701fef9fd3c4ed60bd699ef1   app=devops-app
+
+NAME                             READY   STATUS    RESTARTS   AGE   IP            NODE                                NOMINATED NODE   READINESS GATES
+pod/devops-app-5b67fc6b7-t7frj   1/1     Running   0          92s   10.244.0.42   aks-nodepool1-28804352-vmss000000   <none>           <none>
+pod/devops-app-5b67fc6b7-xh44s   1/1     Running   0          98s   10.244.0.53   aks-nodepool1-28804352-vmss000000   <none>           <none>
+
+NAME                 TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)        AGE   SELECTOR
+service/devops-app   LoadBalancer   10.0.182.139   4.247.214.152   80:32497/TCP   11m   app=devops-app
+
+$ gh run view (redeployment run)
+event=push conclusion=success commit=63c8c566c1d30e7c701fef9fd3c4ed60bd699ef1
+started=2026-11-06T06:34:52Z finished=2026-11-06T06:37:57Z
+success  Build and test  2026-11-06T06:34:55Z -> 2026-11-06T06:35:28Z
+success  Build and push Docker image  2026-11-06T06:35:31Z -> 2026-11-06T06:36:21Z
+success  Deploy to AKS and verify  2026-11-06T06:36:23Z -> 2026-11-06T06:37:57Z
+
+# Public endpoint, checked by the pipeline from outside this network
+"http://4.247.214.152 is serving version 63c8c566c1d30e7c701fef9fd3c4ed60bd699ef1 from pod devops-app-677dbbc8d-t5b8c"

@@ -1,0 +1,5 @@
+42175336221 success push 2026-11-06T06:34:52Z Change the home page message to demonstrate automatic redeployment
+42174944629 success push 2026-11-06T06:31:13Z Run Ansible from its own environment and report the real deploy error
+42174560833 failure push 2026-11-06T06:27:39Z Pin the kubelogin version in the pipeline
+42174272322 failure push 2026-11-06T06:24:53Z Read the GitHub OIDC subject prefix instead of assuming its format
+42174045160 failure push 2026-11-06T06:22:45Z Use a node size Azure for Students allows and make setup re-runnable

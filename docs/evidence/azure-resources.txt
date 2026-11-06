@@ -1,0 +1,31 @@
+# Azure resources: 2026-11-06 12:14:56 IST
+$ az resource list -g cia-devops-rg
+Name               Location
+-----------------  ------------
+ciadevops525f26cb  centralindia
+cia-devops         centralindia
+cia-devops-github  centralindia
+
+$ az aks show
+{
+  "kubernetes": "1.36.5",
+  "location": "centralindia",
+  "name": "cia-devops",
+  "nodeSize": "Standard_B2ls_v2",
+  "nodes": 1,
+  "power": "Running",
+  "state": "Succeeded",
+  "tier": "Free"
+}
+
+$ kubectl get nodes
+NAME                                STATUS   ROLES    AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION             CONTAINER-RUNTIME
+aks-nodepool1-28804352-vmss000000   Ready    <none>   25m   v1.36.5   10.224.0.4    <none>        Ubuntu 24.04.5 LTS   6.8.0-1073-azure (amd64)   containerd://2.3.7-4
+
+$ az acr repository show-tags
+Tag                                       Pushed
+----------------------------------------  ----------------------------
+63c8c566c1d30e7c701fef9fd3c4ed60bd699ef1  2026-11-06T06:36:17.5826489Z
+dbbe67e217aa3723b37a4909cd1e177686d958e3  2026-11-06T06:32:20.8774983Z
+baf4b804beb4f50a7c314301239346dcb32117f9  2026-11-06T06:29:00.4740582Z
+c45804e04250e25bfd636cadb691de47c2e83285  2026-11-06T06:26:13.0387677Z
