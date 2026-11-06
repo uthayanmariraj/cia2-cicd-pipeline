@@ -115,7 +115,7 @@ jobs:
       - name: Install kubelogin
         uses: azure/use-kubelogin@v1.3
         with:
-          kubelogin-version: latest
+          kubelogin-version: v0.2.22
 
       - name: Connect kubectl to the cluster
         run: |
