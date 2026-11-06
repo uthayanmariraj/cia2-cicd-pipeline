@@ -8,7 +8,7 @@ export MSYS_NO_PATHCONV=1   # stops Git Bash rewriting /subscriptions/... as a W
 
 GITHUB_REPO="${1:?usage: bash infra/setup.sh <github-owner>/<repo-name>}"
 LOCATION="${LOCATION:-centralindia}"
-NODE_SIZE="${NODE_SIZE:-Standard_B2s}"
+NODE_SIZE="${NODE_SIZE:-Standard_B2ls_v2}"   # Azure for Students does not allow Standard_B2s
 NODE_COUNT="${NODE_COUNT:-1}"
 RESOURCE_GROUP=cia-devops-rg
 CLUSTER=cia-devops
@@ -32,8 +32,10 @@ done
 
 echo "==> Creating the resource group and container registry"
 az group create --name "$RESOURCE_GROUP" --location "$LOCATION" --output none
-az acr create --resource-group "$RESOURCE_GROUP" --name "$ACR_NAME" --sku Basic \
-  --admin-enabled false --output none
+if ! az acr show --name "$ACR_NAME" --output none 2>/dev/null; then
+  az acr create --resource-group "$RESOURCE_GROUP" --name "$ACR_NAME" --sku Basic \
+    --admin-enabled false --output none
+fi
 ACR_ID=$(value acr show --name "$ACR_NAME" --query id)
 
 echo "==> Creating the AKS cluster (about 5-10 minutes)"
