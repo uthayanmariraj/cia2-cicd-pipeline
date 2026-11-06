@@ -6,7 +6,7 @@ metadata:
   labels:
     app: devops-app
 spec:
-  type: LoadBalancer   # EKS creates an AWS load balancer with a public address
+  type: LoadBalancer   # AKS creates an Azure load balancer with a public IP
   selector:
     app: devops-app
   ports:

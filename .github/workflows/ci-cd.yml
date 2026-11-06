@@ -19,10 +19,10 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  AWS_REGION: ap-south-1
-  EKS_CLUSTER: cia-devops
-  AWS_ROLE: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/cia-devops-github-actions
-  IMAGE: ${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/devops-app:${{ github.sha }}
+  RESOURCE_GROUP: cia-devops-rg
+  AKS_CLUSTER: cia-devops
+  ACR_NAME: ${{ vars.ACR_NAME }}
+  IMAGE: ${{ vars.ACR_NAME }}.azurecr.io/devops-app:${{ github.sha }}
 
 jobs:
   build-and-test:
@@ -66,7 +66,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write   # lets the job sign in to AWS with OIDC, so no stored AWS keys
+      id-token: write   # lets the job sign in to Azure with OIDC, so no stored passwords
     steps:
       - name: Checkout source code
         uses: actions/checkout@v7
@@ -77,23 +77,24 @@ jobs:
           name: app-jar
           path: target
 
-      - name: Sign in to AWS
-        uses: aws-actions/configure-aws-credentials@v6
+      - name: Sign in to Azure
+        uses: azure/login@v3
         with:
-          role-to-assume: ${{ env.AWS_ROLE }}
-          aws-region: ${{ env.AWS_REGION }}
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Sign in to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Sign in to Azure Container Registry
+        run: az acr login --name "$ACR_NAME"
 
       - name: Build and tag the Docker image
         run: docker build -t "$IMAGE" .
 
-      - name: Push the image to Amazon ECR
+      - name: Push the image to Azure Container Registry
         run: docker push "$IMAGE"
 
   deploy:
-    name: Deploy to EKS and verify
+    name: Deploy to AKS and verify
     needs: publish-image
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
@@ -104,14 +105,22 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v7
 
-      - name: Sign in to AWS
-        uses: aws-actions/configure-aws-credentials@v6
+      - name: Sign in to Azure
+        uses: azure/login@v3
         with:
-          role-to-assume: ${{ env.AWS_ROLE }}
-          aws-region: ${{ env.AWS_REGION }}
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install kubelogin
+        uses: azure/use-kubelogin@v1.3
+        with:
+          kubelogin-version: latest
 
       - name: Connect kubectl to the cluster
-        run: aws eks update-kubeconfig --name "$EKS_CLUSTER" --region "$AWS_REGION"
+        run: |
+          az aks get-credentials --resource-group "$RESOURCE_GROUP" --name "$AKS_CLUSTER" --overwrite-existing
+          kubelogin convert-kubeconfig -l azurecli
 
       - name: Install Ansible
         run: pipx install --include-deps ansible && pipx inject ansible kubernetes

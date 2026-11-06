@@ -1,11 +1,11 @@
-# End-to-End CI/CD Pipeline on AWS
+# End-to-End CI/CD Pipeline on Azure
 
-A Java web application that goes from `git push` to a public endpoint on Amazon EKS with no manual steps.
+A Java web application that goes from `git push` to a public endpoint on Azure Kubernetes Service with no manual steps.
 
 ```
-git push -> GitHub Actions -> Maven build and test -> Docker image -> Amazon ECR
-                                                                         |
-          browser <- AWS load balancer <- EKS pods <- Ansible deploy <---+
+git push -> GitHub Actions -> Maven build and test -> Docker image -> Azure Container Registry
+                                                                              |
+             browser <- Azure load balancer <- AKS pods <- Ansible deploy <---+
 ```
 
 | Concern | Tool |
@@ -13,10 +13,10 @@ git push -> GitHub Actions -> Maven build and test -> Docker image -> Amazon ECR
 | Source control | Git, GitHub |
 | Build and test | Maven, JUnit 5 |
 | Container | Docker |
-| Registry | Amazon ECR |
+| Registry | Azure Container Registry (ACR) |
 | CI/CD | GitHub Actions |
 | Deployment automation | Ansible |
-| Orchestration | Kubernetes on Amazon EKS |
+| Orchestration | Kubernetes on Azure Kubernetes Service (AKS) |
 
 ## Repository layout
 
@@ -28,7 +28,7 @@ git push -> GitHub Actions -> Maven build and test -> Docker image -> Amazon ECR
 | `.github/workflows/ci-cd.yml` | The pipeline |
 | `k8s/` | Kubernetes manifests |
 | `ansible/` | Deploy and verify playbooks, inventory |
-| `infra/` | AWS setup and teardown |
+| `infra/` | Azure setup and teardown |
 
 ## Pipeline stages
 
@@ -39,8 +39,8 @@ git push -> GitHub Actions -> Maven build and test -> Docker image -> Amazon ECR
 | Run automated tests | `Build and test` job |
 | Build and tag the image | `Build and push Docker image` job |
 | Push to the registry | `Build and push Docker image` job |
-| Deploy or update Kubernetes | `Deploy to EKS and verify` job, `ansible/deploy.yml` |
-| Verify status and availability | `Deploy to EKS and verify` job, `ansible/verify.yml` |
+| Deploy or update Kubernetes | `Deploy to AKS and verify` job, `ansible/deploy.yml` |
+| Verify status and availability | `Deploy to AKS and verify` job, `ansible/verify.yml` |
 
 Pull requests run only the build and test job. Images are tagged with the Git commit, so each deployment traces back to one commit. If a new version does not become ready, Ansible rolls back and the pipeline fails.
 
@@ -54,15 +54,15 @@ docker run --rm -p 8080:8080 devops-app:local
 
 Then open http://localhost:8080.
 
-## Deploy to AWS
+## Deploy to Azure
 
-Needs the AWS CLI (signed in), `eksctl`, `kubectl` and a GitHub repository.
+Needs the Azure CLI (`az login`), the GitHub CLI (`gh auth login`), `kubectl` and a GitHub repository.
 
 ```bash
 bash infra/setup.sh <github-owner>/<repo-name>
 ```
 
-Add the repository variable `AWS_ACCOUNT_ID` that the script prints, then push to `main`. The application URL appears in the output of the verify step, or from:
+The script creates the resources and sets the repository variables. Push to `main` to run the pipeline. The application URL appears in the output of the verify step, or from:
 
 ```bash
 kubectl get service devops-app -n devops-app
@@ -74,7 +74,7 @@ Edit `app.message` in `src/main/resources/application.properties`, commit and pu
 
 ## Delete everything
 
-The cluster costs money for as long as it exists.
+The cluster uses credit for as long as it exists.
 
 ```bash
 bash infra/teardown.sh
