@@ -64,12 +64,14 @@ CLIENT_ID=$(value identity show --resource-group "$RESOURCE_GROUP" --name "$IDEN
 PRINCIPAL_ID=$(value identity show --resource-group "$RESOURCE_GROUP" --name "$IDENTITY" --query principalId)
 
 # Only the main branch of this repository can sign in as the identity.
+# New repositories use a subject containing numeric IDs, so ask GitHub for the exact prefix.
+SUBJECT_PREFIX=$(gh api "repos/${GITHUB_REPO}/actions/oidc/customization/sub" --jq .sub_claim_prefix | tr -d '\r')
 az identity federated-credential create \
   --resource-group "$RESOURCE_GROUP" \
   --identity-name "$IDENTITY" \
   --name github-main \
   --issuer https://token.actions.githubusercontent.com \
-  --subject "repo:${GITHUB_REPO}:ref:refs/heads/main" \
+  --subject "${SUBJECT_PREFIX}:ref:refs/heads/main" \
   --audiences api://AzureADTokenExchange \
   --output none
 
