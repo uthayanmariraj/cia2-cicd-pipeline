@@ -1,3 +1,4 @@
+42176506585 success push 2026-11-06T06:45:50Z Pause pods before shutdown so rollouts do not drop requests
 42175336221 success push 2026-11-06T06:34:52Z Change the home page message to demonstrate automatic redeployment
 42174944629 success push 2026-11-06T06:31:13Z Run Ansible from its own environment and report the real deploy error
 42174560833 failure push 2026-11-06T06:27:39Z Pin the kubelogin version in the pipeline

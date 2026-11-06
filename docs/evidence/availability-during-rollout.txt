@@ -1,4 +1,16 @@
-# Availability during a rolling restart, measured from inside the cluster
-# One request a second to the Service, while kubectl rollout restart replaced both pods.
-# Does not cover the Azure load balancer. An earlier check from outside was invalid: the local network filter blocked it.
-requests=100 successful=99 failed=1
+# Availability during rolling restarts, measured from inside the cluster
+# Method: a pod sent one request a second to the Service (100 requests per test)
+# while `kubectl rollout restart` replaced both application pods.
+# Scope: covers the Kubernetes Service, not the Azure load balancer.
+
+Before the preStop pause (commit 63c8c56):
+  restart 1: requests=100 successful=99 failed=1
+
+After the 5 second preStop pause (commit 3a8227e, pipeline run 42176506585):
+  restart 1: requests=100 successful=100 failed=0
+  restart 2: requests=100 successful=100 failed=0
+  restart 3: requests=100 successful=100 failed=0
+
+# An earlier check from this PC to the public IP was discarded. The local network's
+# FortiGuard web filter began blocking the address (category: Unrated) during that test,
+# so its failures said nothing about the application.
