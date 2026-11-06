@@ -1,0 +1,51 @@
+---
+# Confirms the Deployment is healthy and that the public endpoint serves the expected version.
+# Usage: ansible-playbook -i inventory.ini verify.yml -e version=<git sha>
+- name: Verify devops-app is deployed and reachable
+  hosts: k8s_control
+  gather_facts: false
+  vars:
+    namespace: devops-app
+  tasks:
+    - name: Read the Deployment status
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        name: devops-app
+        namespace: "{{ namespace }}"
+      register: deployment
+
+    - name: Check every replica is ready
+      ansible.builtin.assert:
+        that:
+          - deployment.resources[0].status.readyReplicas | default(0) == deployment.resources[0].spec.replicas
+        fail_msg: "Not all replicas are ready"
+
+    - name: Wait for the load balancer address
+      kubernetes.core.k8s_info:
+        kind: Service
+        name: devops-app
+        namespace: "{{ namespace }}"
+      register: service
+      until: service.resources[0].status.loadBalancer.ingress | default([]) | length > 0
+      retries: 30
+      delay: 10
+
+    - name: Work out the application URL
+      ansible.builtin.set_fact:
+        app_url: >-
+          http://{{ service.resources[0].status.loadBalancer.ingress[0].hostname
+          | default(service.resources[0].status.loadBalancer.ingress[0].ip) }}
+
+    # A new load balancer can take a few minutes to start answering.
+    - name: Check the endpoint serves this version
+      ansible.builtin.uri:
+        url: "{{ app_url }}/api/info"
+        return_content: true
+      register: info
+      until: info.status == 200 and info.json.version == version
+      retries: 40
+      delay: 15
+
+    - name: Show the result
+      ansible.builtin.debug:
+        msg: "{{ app_url }} is serving version {{ info.json.version }} from pod {{ info.json.pod }}"

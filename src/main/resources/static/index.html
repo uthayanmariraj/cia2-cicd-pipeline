@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CI/CD Demo App</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #f4f6f8; color: #1f2933; margin: 0; }
+    main { max-width: 640px; margin: 48px auto; padding: 0 16px; }
+    section { background: #fff; border: 1px solid #d9e2ec; border-radius: 8px; padding: 20px 24px; margin-bottom: 16px; }
+    h1 { font-size: 1.5rem; margin: 0 0 12px; }
+    h2 { font-size: 1.1rem; margin: 0 0 12px; }
+    dl { display: grid; grid-template-columns: 90px 1fr; gap: 4px 12px; margin: 0; }
+    dt { color: #52606d; }
+    dd { margin: 0; font-family: ui-monospace, monospace; word-break: break-all; }
+    input { width: 70%; padding: 8px; border: 1px solid #bcccdc; border-radius: 4px; }
+    button { padding: 8px 14px; border: 0; border-radius: 4px; background: #1f6feb; color: #fff; cursor: pointer; }
+    #result { margin: 12px 0 0; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+<main>
+  <section>
+    <h1 id="message">Loading...</h1>
+    <dl>
+      <dt>Version</dt><dd id="version">-</dd>
+      <dt>Pod</dt><dd id="pod">-</dd>
+    </dl>
+  </section>
+  <section>
+    <h2>Grade calculator</h2>
+    <form id="form">
+      <input id="marks" placeholder="Marks, e.g. 78,91,85" aria-label="Marks" required>
+      <button type="submit">Calculate</button>
+    </form>
+    <p id="result"></p>
+  </section>
+</main>
+<script>
+  fetch('api/info').then(r => r.json()).then(info => {
+    document.getElementById('message').textContent = info.message;
+    document.getElementById('version').textContent = info.version;
+    document.getElementById('pod').textContent = info.pod;
+  });
+  document.getElementById('form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const marks = encodeURIComponent(document.getElementById('marks').value);
+    const response = await fetch('api/grade?marks=' + marks);
+    const body = await response.json();
+    document.getElementById('result').textContent = response.ok
+      ? 'Average ' + body.average + ', grade ' + body.grade
+      : body.error;
+  });
+</script>
+</body>
+</html>

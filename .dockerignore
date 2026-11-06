@@ -1,0 +1,3 @@
+# Only the packaged jar is needed in the build context
+*
+!target/devops-app.jar

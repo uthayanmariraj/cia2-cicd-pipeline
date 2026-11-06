@@ -1,0 +1,11 @@
+target/
+*.class
+*.log
+.idea/
+.vscode/
+*.iml
+.DS_Store
+# Never commit credentials or local cluster config
+.env
+*.pem
+kubeconfig*

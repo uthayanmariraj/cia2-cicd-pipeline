@@ -1,0 +1,44 @@
+---
+# Deploys one image to Kubernetes and rolls back if the new version does not become ready.
+# Usage: ansible-playbook -i inventory.ini deploy.yml -e image=<image:tag> -e version=<git sha>
+- name: Deploy devops-app to Kubernetes
+  hosts: k8s_control
+  gather_facts: false
+  vars:
+    namespace: devops-app
+    manifests_dir: "{{ playbook_dir }}/../k8s"
+    rollout_timeout: 300s
+  tasks:
+    - name: Check the required variables were passed
+      ansible.builtin.assert:
+        that:
+          - image is defined
+          - version is defined
+        fail_msg: "Pass -e image=<image:tag> -e version=<git sha>"
+
+    - name: Roll out the new version
+      block:
+        - name: Apply the Deployment and Service manifests
+          kubernetes.core.k8s:
+            state: present
+            apply: true
+            definition: "{{ lookup('ansible.builtin.template', manifests_dir + '/' + item) | from_yaml }}"
+          loop:
+            - deployment.yaml
+            - service.yaml
+
+        - name: Wait for the rollout to finish
+          ansible.builtin.command:
+            cmd: "kubectl rollout status deployment/devops-app -n {{ namespace }} --timeout={{ rollout_timeout }}"
+          changed_when: false
+
+      rescue:
+        - name: Roll back to the previous version
+          ansible.builtin.command:
+            cmd: "kubectl rollout undo deployment/devops-app -n {{ namespace }}"
+          changed_when: true
+          failed_when: false
+
+        - name: Fail the pipeline
+          ansible.builtin.fail:
+            msg: "Rollout of {{ image }} failed and was rolled back"
