@@ -1,0 +1,14 @@
+# Before the change: 2026-11-06 12:04:30 IST
+$ curl http://4.247.214.152/api/info
+{"version":"dbbe67e217aa3723b37a4909cd1e177686d958e3","pod":"devops-app-57f4df55c6-58v7p","message":"Welcome to the CI/CD demo application"}
+$ curl http://4.247.214.152/api/grade?marks=78,91,85
+{"average":84.67,"grade":"A"}
+$ kubectl -n devops-app get deploy,pods
+NAME                         READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/devops-app   2/2     2            2           88s
+
+NAME                              READY   STATUS    RESTARTS   AGE
+pod/devops-app-57f4df55c6-58v7p   1/1     Running   0          88s
+pod/devops-app-57f4df55c6-znxfh   1/1     Running   0          88s
+$ git log -1 --oneline
+dbbe67e Run Ansible from its own environment and report the real deploy error
