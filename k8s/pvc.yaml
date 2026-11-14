@@ -1,0 +1,18 @@
+# Rendered by Ansible (ansible/deploy.yml), which fills in the storage class.
+# Storage that outlives the pods: a crashed, deleted or replaced pod mounts the same data.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: devops-app-data
+  namespace: devops-app
+  labels:
+    app: devops-app
+spec:
+  # ReadWriteMany: both replicas, on any node, mount the volume at once.
+  # On AKS this is an Azure Files share, created automatically by the storage class.
+  accessModes:
+    - ReadWriteMany
+  storageClassName: "{{ storage_class }}"
+  resources:
+    requests:
+      storage: 1Gi

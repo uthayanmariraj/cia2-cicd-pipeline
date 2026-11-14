@@ -16,6 +16,12 @@
     input { width: 70%; padding: 8px; border: 1px solid #bcccdc; border-radius: 4px; }
     button { padding: 8px 14px; border: 0; border-radius: 4px; background: #1f6feb; color: #fff; cursor: pointer; }
     #result { margin: 12px 0 0; min-height: 1.2em; }
+    .count { color: #52606d; font-weight: normal; }
+    .note { color: #52606d; font-size: 0.9rem; margin: 0 0 12px; }
+    #history { margin: 0 0 12px; padding-left: 20px; }
+    #history li { margin-bottom: 8px; }
+    #history small { display: block; color: #52606d; font-family: ui-monospace, monospace; word-break: break-all; }
+    button.secondary { background: #fff; color: #1f6feb; border: 1px solid #1f6feb; }
   </style>
 </head>
 <body>
@@ -35,6 +41,12 @@
     </form>
     <p id="result"></p>
   </section>
+  <section>
+    <h2>Saved results <span id="count" class="count"></span></h2>
+    <p class="note">Stored on a Kubernetes PersistentVolumeClaim, so they survive pod crashes and restarts.</p>
+    <ol id="history"></ol>
+    <button type="button" id="refresh" class="secondary">Refresh</button>
+  </section>
 </main>
 <script>
   fetch('api/info').then(r => r.json()).then(info => {
@@ -42,15 +54,34 @@
     document.getElementById('version').textContent = info.version;
     document.getElementById('pod').textContent = info.pod;
   });
+  async function loadHistory() {
+    const response = await fetch('api/history');
+    if (!response.ok) return;
+    const body = await response.json();
+    document.getElementById('count').textContent = '(' + body.count + ')';
+    const list = document.getElementById('history');
+    list.replaceChildren(...body.recent.map(r => {
+      const item = document.createElement('li');
+      const time = new Date(r.savedAt).toLocaleString();
+      item.textContent = 'Marks ' + r.marks.join(', ') + ': average ' + r.average + ', grade ' + r.grade;
+      const meta = document.createElement('small');
+      meta.textContent = 'saved by ' + r.savedBy + ' at ' + time;
+      item.append(meta);
+      return item;
+    }));
+  }
   document.getElementById('form').addEventListener('submit', async e => {
     e.preventDefault();
     const marks = encodeURIComponent(document.getElementById('marks').value);
-    const response = await fetch('api/grade?marks=' + marks);
+    const response = await fetch('api/history?marks=' + marks, {method: 'POST'});
     const body = await response.json();
     document.getElementById('result').textContent = response.ok
-      ? 'Average ' + body.average + ', grade ' + body.grade
+      ? 'Average ' + body.average + ', grade ' + body.grade + ' (saved)'
       : body.error;
+    loadHistory();
   });
+  document.getElementById('refresh').addEventListener('click', loadHistory);
+  loadHistory();
 </script>
 </body>
 </html>

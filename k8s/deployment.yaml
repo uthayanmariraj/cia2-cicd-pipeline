@@ -39,6 +39,8 @@ spec:
           env:
             - name: APP_VERSION
               value: "{{ version }}"
+            - name: DATA_DIR
+              value: /data   # where the app saves results: the persistent volume below
           # Keep serving for a moment after shutdown starts, so the Service can
           # stop sending traffic here before the app closes its port.
           lifecycle:
@@ -76,6 +78,11 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp   # Tomcat needs a writable temp folder
+            - name: data
+              mountPath: /data
       volumes:
         - name: tmp
-          emptyDir: {}
+          emptyDir: {}   # scratch space, lost with the pod
+        - name: data
+          persistentVolumeClaim:
+            claimName: devops-app-data   # survives pod crashes, deletions and redeploys

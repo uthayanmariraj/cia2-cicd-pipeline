@@ -8,6 +8,8 @@
     namespace: devops-app
     manifests_dir: "{{ playbook_dir }}/../k8s"
     rollout_timeout: 300s
+    # Azure Files on AKS. Override for another cluster, e.g. -e storage_class=standard on minikube.
+    storage_class: azurefile-csi
   tasks:
     - name: Check the required variables were passed
       ansible.builtin.assert:
@@ -18,6 +20,23 @@
 
     - name: Roll out the new version
       block:
+        - name: Apply the PersistentVolumeClaim
+          kubernetes.core.k8s:
+            state: present
+            apply: true
+            definition: "{{ lookup('ansible.builtin.template', manifests_dir + '/pvc.yaml') | from_yaml }}"
+
+        # The first deploy creates an Azure Files share, which takes a little while.
+        - name: Wait for the claim to be bound to a volume
+          kubernetes.core.k8s_info:
+            kind: PersistentVolumeClaim
+            name: devops-app-data
+            namespace: "{{ namespace }}"
+          register: claim
+          until: claim.resources | length > 0 and claim.resources[0].status.phase | default('') == 'Bound'
+          retries: 30
+          delay: 5
+
         - name: Apply the Deployment and Service manifests
           kubernetes.core.k8s:
             state: present

@@ -20,6 +20,20 @@
           - deployment.resources[0].status.readyReplicas | default(0) == deployment.resources[0].spec.replicas
         fail_msg: "Not all replicas are ready"
 
+    - name: Read the PersistentVolumeClaim
+      kubernetes.core.k8s_info:
+        kind: PersistentVolumeClaim
+        name: devops-app-data
+        namespace: "{{ namespace }}"
+      register: claim
+
+    - name: Check the data volume is bound
+      ansible.builtin.assert:
+        that:
+          - claim.resources | length > 0
+          - claim.resources[0].status.phase == 'Bound'
+        fail_msg: "The data volume is not bound"
+
     - name: Wait for the load balancer address
       kubernetes.core.k8s_info:
         kind: Service
