@@ -49,6 +49,14 @@ class ApiIntegrationTest {
     }
 
     @Test
+    void pageIsRevalidatedSoRedeploysShowAtOnce() throws Exception {
+        mvc.perform(get("/index.html"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .header().string("Cache-Control", containsString("no-cache")));
+    }
+
+    @Test
     void tooManyMarksAreRejected() throws Exception {
         mvc.perform(post("/api/history").param("marks", "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21"))
                 .andExpect(status().isBadRequest())
