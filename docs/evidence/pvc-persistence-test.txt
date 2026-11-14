@@ -1,0 +1,53 @@
+# PersistentVolumeClaim persistence test, 2026-11-14 09:56:06 IST
+$ kubectl -n devops-app get pvc
+NAME              STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS    VOLUMEATTRIBUTESCLASS   AGE
+devops-app-data   Bound    pvc-5266cc0e-982c-4bea-808a-b44955945f69   1Gi        RWX            azurefile-csi   <unset>                 96s
+
+## 1. Save three results
+POST marks=78,91,85 -> 201
+POST marks=45,60,52 -> 201
+POST marks=95,98,92 -> 201
+count=3
+   [95.0, 98.0, 92.0] O saved by devops-app-9678474f9-lcctb
+   [45.0, 60.0, 52.0] D saved by devops-app-9678474f9-lcctb
+   [78.0, 91.0, 85.0] A saved by devops-app-9678474f9-52x5p
+NAME                         READY   STATUS    RESTARTS   AGE
+devops-app-9678474f9-52x5p   1/1     Running   0          50s
+devops-app-9678474f9-lcctb   1/1     Running   0          61s
+
+## 2. Crash one pod: kill the app process (PID 1) inside it
+$ kubectl -n devops-app exec devops-app-9678474f9-52x5p -- sh -c 'kill 1'
+NAME                         READY   STATUS    RESTARTS      AGE
+devops-app-9678474f9-52x5p   1/1     Running   1 (11s ago)   63s
+devops-app-9678474f9-lcctb   1/1     Running   0             74s
+last state of devops-app-9678474f9-52x5p: Error exit=143
+count=3
+   [95.0, 98.0, 92.0] O saved by devops-app-9678474f9-lcctb
+   [45.0, 60.0, 52.0] D saved by devops-app-9678474f9-lcctb
+   [78.0, 91.0, 85.0] A saved by devops-app-9678474f9-52x5p
+
+## 3. Delete every pod: Kubernetes replaces them with new ones
+$ kubectl -n devops-app delete pods -l app=devops-app
+pod "devops-app-9678474f9-52x5p" deleted from devops-app namespace
+pod "devops-app-9678474f9-lcctb" deleted from devops-app namespace
+Waiting for deployment "devops-app" rollout to finish: 0 of 2 updated replicas are available...
+Waiting for deployment "devops-app" rollout to finish: 1 of 2 updated replicas are available...
+deployment "devops-app" successfully rolled out
+NAME                         READY   STATUS    RESTARTS   AGE
+devops-app-9678474f9-79qsw   1/1     Running   0          11s
+devops-app-9678474f9-ll8kz   1/1     Running   0          11s
+old pods: devops-app-9678474f9-52x5p devops-app-9678474f9-lcctb
+count=3
+   [95.0, 98.0, 92.0] O saved by devops-app-9678474f9-lcctb
+   [45.0, 60.0, 52.0] D saved by devops-app-9678474f9-lcctb
+   [78.0, 91.0, 85.0] A saved by devops-app-9678474f9-52x5p
+
+## 4. The files on the volume, seen from a new pod
+$ kubectl -n devops-app exec devops-app-9678474f9-79qsw -- ls -l /data
+total 2
+-rwxrwxrwx 1 root root 166 Nov 14 04:26 1794630367070-29aec029.json
+-rwxrwxrwx 1 root root 166 Nov 14 04:26 1794630367439-7e99c348.json
+-rwxrwxrwx 1 root root 165 Nov 14 04:26 1794630367786-f3895ecd.json
+$ kubectl -n devops-app exec devops-app-9678474f9-79qsw -- df -h /data
+Filesystem                                                                                Size  Used Avail Use% Mounted on
+//f9dff8791e99841638ac679.file.core.windows.net/pvc-5266cc0e-982c-4bea-808a-b44955945f69  1.0G   64K  1.0G   1% /data

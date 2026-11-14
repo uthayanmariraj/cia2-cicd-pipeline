@@ -68,6 +68,20 @@ The script creates the resources and sets the repository variables. Push to `mai
 kubectl get service devops-app -n devops-app
 ```
 
+## Persistent storage
+
+Saved grade results live on a PersistentVolumeClaim (`k8s/pvc.yaml`), so they survive pod crashes and replacements. On AKS the claim is a 1 GiB Azure Files share (`azurefile-csi`, ReadWriteMany), mounted at `/data` in both replicas. Each result is one JSON file, and the app keeps the newest 200.
+
+To show it, save a few results on the home page, then crash or delete the pods. The results remain, including ones saved by pods that no longer exist:
+
+```bash
+kubectl -n devops-app get pvc,pv
+kubectl -n devops-app exec <pod-name> -- sh -c "kill 1"
+kubectl -n devops-app delete pods -l app=devops-app
+```
+
+`docs/evidence/pvc-persistence-test.txt` records a full run of this test.
+
 ## Demonstrate a change
 
 Edit `app.message` in `src/main/resources/application.properties`, commit and push to `main`. When the pipeline finishes, refresh the page: the new message appears, and `Version` shows the new commit.
