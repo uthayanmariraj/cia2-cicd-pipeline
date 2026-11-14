@@ -57,6 +57,15 @@ class ApiIntegrationTest {
     }
 
     @Test
+    void pageHasRefreshButNoVersionOrPodHeader() throws Exception {
+        mvc.perform(get("/index.html"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"refresh\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("id=\"version\""))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("id=\"pod\""))));
+    }
+
+    @Test
     void tooManyMarksAreRejected() throws Exception {
         mvc.perform(post("/api/history").param("marks", "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21"))
                 .andExpect(status().isBadRequest())

@@ -8,30 +8,27 @@
     body { font-family: system-ui, sans-serif; background: #f4f6f8; color: #1f2933; margin: 0; }
     main { max-width: 640px; margin: 48px auto; padding: 0 16px; }
     section { background: #fff; border: 1px solid #d9e2ec; border-radius: 8px; padding: 20px 24px; margin-bottom: 16px; }
-    h1 { font-size: 1.5rem; margin: 0 0 12px; }
+    h1 { font-size: 1.5rem; margin: 0; }
     h2 { font-size: 1.1rem; margin: 0 0 12px; }
-    dl { display: grid; grid-template-columns: 90px 1fr; gap: 4px 12px; margin: 0; }
-    dt { color: #52606d; }
-    dd { margin: 0; font-family: ui-monospace, monospace; word-break: break-all; }
     input { width: 70%; padding: 8px; border: 1px solid #bcccdc; border-radius: 4px; }
     button { padding: 8px 14px; border: 0; border-radius: 4px; background: #1f6feb; color: #fff; cursor: pointer; }
+    button:disabled { opacity: 0.6; cursor: wait; }
     #result { margin: 12px 0 0; min-height: 1.2em; }
     .count { color: #52606d; font-weight: normal; }
     .note { color: #52606d; font-size: 0.9rem; margin: 0 0 12px; }
     #history { margin: 0 0 12px; padding-left: 20px; }
     #history li { margin-bottom: 8px; }
     #history small { display: block; color: #52606d; font-family: ui-monospace, monospace; word-break: break-all; }
+    .actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     button.secondary { background: #fff; color: #1f6feb; border: 1px solid #1f6feb; }
+    #status { color: #52606d; font-size: 0.9rem; }
+    #status.error { color: #b42318; }
   </style>
 </head>
 <body>
 <main>
   <section>
     <h1 id="message">Loading...</h1>
-    <dl>
-      <dt>Version</dt><dd id="version">-</dd>
-      <dt>Pod</dt><dd id="pod">-</dd>
-    </dl>
   </section>
   <section>
     <h2>Grade calculator</h2>
@@ -45,42 +42,65 @@
     <h2>Saved results <span id="count" class="count"></span></h2>
     <p class="note">Stored on a Kubernetes PersistentVolumeClaim, so they survive pod crashes and restarts.</p>
     <ol id="history"></ol>
-    <button type="button" id="refresh" class="secondary">Refresh</button>
+    <div class="actions">
+      <button type="button" id="refresh" class="secondary">Refresh</button>
+      <span id="status" role="status"></span>
+    </div>
   </section>
 </main>
 <script>
-  fetch('api/info').then(r => r.json()).then(info => {
-    document.getElementById('message').textContent = info.message;
-    document.getElementById('version').textContent = info.version;
-    document.getElementById('pod').textContent = info.pod;
-  });
-  async function loadHistory() {
-    const response = await fetch('api/history');
-    if (!response.ok) return;
-    const body = await response.json();
-    document.getElementById('count').textContent = '(' + body.count + ')';
-    const list = document.getElementById('history');
-    list.replaceChildren(...body.recent.map(r => {
-      const item = document.createElement('li');
-      const time = new Date(r.savedAt).toLocaleString();
-      item.textContent = 'Marks ' + r.marks.join(', ') + ': average ' + r.average + ', grade ' + r.grade;
-      const meta = document.createElement('small');
-      meta.textContent = 'saved by ' + r.savedBy + ' at ' + time;
-      item.append(meta);
-      return item;
-    }));
+  const refreshButton = document.getElementById('refresh');
+  const status = document.getElementById('status');
+
+  function showStatus(text, isError) {
+    status.textContent = text;
+    status.className = isError ? 'error' : '';
   }
+
+  fetch('api/info', {cache: 'no-store'}).then(r => r.json()).then(info => {
+    document.getElementById('message').textContent = info.message;
+  });
+
+  // Always asks the server again (never the browser cache), and says what happened.
+  async function loadHistory() {
+    refreshButton.disabled = true;
+    showStatus('Refreshing...', false);
+    try {
+      const response = await fetch('api/history', {cache: 'no-store'});
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const body = await response.json();
+      document.getElementById('count').textContent = '(' + body.count + ')';
+      document.getElementById('history').replaceChildren(...body.recent.map(r => {
+        const item = document.createElement('li');
+        item.textContent = 'Marks ' + r.marks.join(', ') + ': average ' + r.average + ', grade ' + r.grade;
+        const meta = document.createElement('small');
+        meta.textContent = 'saved by ' + r.savedBy + ' at ' + new Date(r.savedAt).toLocaleString();
+        item.append(meta);
+        return item;
+      }));
+      showStatus('Updated at ' + new Date().toLocaleTimeString(), false);
+    } catch (error) {
+      showStatus('Could not reach the server. If pods are restarting, wait a moment and try again.', true);
+    } finally {
+      refreshButton.disabled = false;
+    }
+  }
+
   document.getElementById('form').addEventListener('submit', async e => {
     e.preventDefault();
     const marks = encodeURIComponent(document.getElementById('marks').value);
-    const response = await fetch('api/history?marks=' + marks, {method: 'POST'});
-    const body = await response.json();
-    document.getElementById('result').textContent = response.ok
-      ? 'Average ' + body.average + ', grade ' + body.grade + ' (saved)'
-      : body.error;
+    try {
+      const response = await fetch('api/history?marks=' + marks, {method: 'POST'});
+      const body = await response.json();
+      document.getElementById('result').textContent = response.ok
+        ? 'Average ' + body.average + ', grade ' + body.grade + ' (saved)'
+        : body.error;
+    } catch (error) {
+      document.getElementById('result').textContent = 'Could not reach the server. Try again in a moment.';
+    }
     loadHistory();
   });
-  document.getElementById('refresh').addEventListener('click', loadHistory);
+  refreshButton.addEventListener('click', loadHistory);
   loadHistory();
 </script>
 </body>
